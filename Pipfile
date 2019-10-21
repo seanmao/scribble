@@ -1,0 +1,22 @@
+[[source]]
+verify_ssl = true
+url = "https://pypi.python.org/simple"
+name = "pypi"
+
+[packages]
+intervaltree = ">=2.1.0, <3.0"
+jinja2 = "==2.9.6"
+pyyaml = "==3.13"
+
+[dev-packages]
+black = "*"
+flake8 = "*"
+ipdb = "*"
+ipython = "*"
+pytest = "*"
+
+[pipenv]
+allow_prereleases = true
+
+[requires]
+python_version = "3.7"

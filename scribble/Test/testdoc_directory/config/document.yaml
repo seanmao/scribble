@@ -1,0 +1,4 @@
+
+  directories: ["{here}/testdoc_directory"]
+  document_sections: ["document.my_document"]
+  design_file: "{here}/design.yaml"

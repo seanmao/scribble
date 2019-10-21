@@ -1,0 +1,111 @@
+# Copyright 2019 SiFive, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You should have received a copy of LICENSE.Apache2 along with
+# this software. If not, you may obtain a copy at
+#
+#    https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# A Scribble simple document plan only produces two simple files, an AsciiDoc
+# (.adoc) file and an HTML file.
+tuple ScribbleSimpleDocumentPlan =
+  global DesignFile: Path # Input design file
+  global OutputAsciiDoc: String # Path to output AsciiDoc file
+  global OutputHTML: String # Path to output HTML file
+  global Sections: List String # Sections to render
+  global Values: List String # Extra document values to pass in on the command line
+
+global def makeScribbleSimpleDocumentPlan designFile outputAsciiDoc outputHTML sections =
+  ScribbleSimpleDocumentPlan
+  designFile
+  outputAsciiDoc
+  outputHTML
+  sections
+  Nil
+
+# Representation of the built files corresponding to a ScribleSimpleDocumentPlan
+tuple ScribbleSimpleDocumentOutput =
+  global AsciiDoc: Path
+  global HTML: Path
+
+def projectRoot = simplify "{here}/../.."
+
+publish scribbleDirectories = projectRoot, Nil
+
+# From a ScribbleSimpleDocumentPlan produce a Result Path containing the path to
+# the produced AsciiDoc file
+def buildADOC plan =
+  def extractPath job =
+    job.getJobOutputs
+    | find (_.getPathName ==~ plan.getScribbleSimpleDocumentPlanOutputAsciiDoc)
+    | getOrFail (makeError "Scribble failed to produce output file {plan.getScribbleSimpleDocumentPlanOutputAsciiDoc}")
+    | rmap getPairFirst
+
+  def cmd =
+    def values = match plan.getScribbleSimpleDocumentPlanValues
+      Nil = Nil
+      values = '--values', values
+
+    pythonModule
+    "scribble.document"
+    ('--output', plan.getScribbleSimpleDocumentPlanOutputAsciiDoc, Nil) ++
+    ('--sections', plan.getScribbleSimpleDocumentPlanSections) ++
+    ('--design-file', plan.getScribbleSimpleDocumentPlanDesignFile.getPathName, Nil) ++
+    values
+
+  # Get documentation directories and all their source files.
+  def scribbleDirectories = subscribe scribbleDirectories
+  def visible =
+    plan.getScribbleSimpleDocumentPlanDesignFile,
+    (scribbleDirectories | mapFlat (sources _ `.*`))
+
+  makePlan cmd visible
+  | setPlanEnvironmentPath "PYTHONPATH" scribbleDirectories
+  | addPythonEnv projectRoot
+  | runJob
+  | extractPath
+
+
+# From a ScribbleSimpleDocumentPlan produce a Result Path containing the path to
+# the produced HTML file
+def buildHTML plan adocPath =
+  def extractPath job =
+    job.getJobOutputs
+    | find (_.getPathName ==~ plan.getScribbleSimpleDocumentPlanOutputHTML)
+    | getOrFail (makeError "Scribble failed to produce output file {plan.getScribbleSimpleDocumentPlanOutputAsciiDoc}")
+    | rmap getPairFirst
+
+  def cmd =
+    "asciidoctor",
+    '--out-file',
+    plan.getScribbleSimpleDocumentPlanOutputHTML,
+    adocPath.getPathName,
+    Nil
+
+  # Get documentation directories and all their source files.
+  def visible = adocPath, Nil
+
+  makePlan cmd visible
+  | addRubyEnv projectRoot
+  | runJob
+  | extractPath
+
+# Build a document and returns tuple of created files.
+global def buildScribbleSimpleDocument plan =
+
+  def buildHTMLAndReturnCombinedOutput adocPath =
+    buildHTML plan adocPath
+    | rmap(\htmlPath ScribbleSimpleDocumentOutput adocPath htmlPath)
+
+  buildADOC plan
+  | rmapPass buildHTMLAndReturnCombinedOutput
+
+# Publish installation tasks so our libraries can be preinstalled if desired.
+publish preinstall = (pythonInstaller projectRoot), (rubyInstaller projectRoot), Nil
