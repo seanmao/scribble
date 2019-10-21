@@ -201,8 +201,9 @@ from scribble.template import template
 from scribble.model import Text, Element, Section, Snippet
 
 def {function_name}(scope: Element, **kwargs: any) -> Text:
-    newargs = {{k: v for k, v in kwargs.items() if k not in {"kwargs", "scope"} }}
-    text = template("{fullname}", scope=scope, kwargs=newargs, **newargs)
+    newargs = {{k: v for k, v in kwargs.items() if k not in {"kwargs", "scope", "context"} }}
+    text = template("{fullname}", scope=scope, kwargs=newargs, context=newargs, **newargs)
+
     return Text(text)
 """
 
