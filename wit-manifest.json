@@ -1,6 +1,6 @@
 [
     {
-        "commit": "296b9c2ad6eb29e5975e79778f33cf2979443ad2",
+        "commit": "96cdaf23a35173c156fe7a986c33d34c70fc81fe",
         "name": "api-languages-sifive",
         "source": "git@github.com:sifive/api-languages-sifive.git"
     }
