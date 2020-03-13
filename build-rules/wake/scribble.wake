@@ -37,6 +37,7 @@ tuple ScribbleSimpleDocumentOutput =
 
 def projectRoot = simplify "{here}/../.."
 
+global topic scribbleDirectories : String
 publish scribbleDirectories = projectRoot, Nil
 
 # From a ScribbleSimpleDocumentPlan produce a Result Path containing the path to
